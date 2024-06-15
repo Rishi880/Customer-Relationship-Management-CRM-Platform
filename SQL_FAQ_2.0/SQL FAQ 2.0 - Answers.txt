@@ -1,0 +1,460 @@
+-- --------------------------------------------------------------------------
+-- SQL - Frequently Asked Questions(FAQ) - Internal & External Mock Questions
+-- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------------------------------
+-- Database     : Classicmodels
+-- Link         : https://www.mysqltutorial.org/wp-content/uploads/2018/03/mysqlsampledatabase.zip
+-- Author       : Jan Motl
+-- -----------------------------------------------------------------------------------------------
+
+use classicmodels;
+
+# Solutions
+-- 1. Retrieve the list of customer names from the USA and the list of customer names from Canada using the UNION operator.
+SELECT customerName FROM customers WHERE country = 'USA'
+UNION
+SELECT customerName FROM customers WHERE country = 'Canada';
+
+-- 2. Using the UNION ALL operator, list the customer names from the USA and Canada. How does this differ from the previous query?
+SELECT customerName FROM customers WHERE country = 'USA'
+UNION ALL
+SELECT customerName FROM customers WHERE country = 'Canada';
+
+-- 3. Write a query using UNION to display distinct cities from the customers table.
+SELECT DISTINCT city FROM customers WHERE country = 'USA'
+UNION
+SELECT DISTINCT city FROM customers WHERE country = 'Canada';
+
+-- 4. Calculate the average credit limit of customers by country.
+SELECT country, AVG(creditLimit) FROM customers GROUP BY country;
+
+-- 5. Determine the total number of customers per city.
+SELECT city, COUNT(customerNumber) FROM customers GROUP BY city;
+
+-- 6. Find the city with the highest number of customers.
+SELECT city FROM customers GROUP BY city ORDER BY COUNT(customerNumber) DESC LIMIT 1;
+
+-- 7. What's the maximum, minimum, and average credit limit of customers in the customers table? 
+SELECT MAX(creditLimit), MIN(creditLimit), AVG(creditLimit) FROM customers;
+
+-- 8. Using a subquery, find customers who have a credit limit higher than the average credit limit.
+SELECT * FROM customers WHERE creditLimit > (SELECT AVG(creditLimit) FROM customers);
+
+-- 9. List the top 5 countries with the most customers.
+SELECT country, COUNT(customerNumber) AS customer_count FROM customers GROUP BY country ORDER BY customer_count DESC LIMIT 5;
+
+-- 10. Display the customer name and their respective sales representative's employee number, but only for those customers who have a sales representative.
+SELECT customerName, salesRepEmployeeNumber FROM customers WHERE salesRepEmployeeNumber IS NOT NULL;
+
+-- 11. Find the total credit limit of customers, grouped by city, but only for cities with more than 2 customers.
+SELECT city, SUM(creditLimit) FROM customers GROUP BY city HAVING COUNT(customerNumber) > 2;
+
+-- 12. Find the second highest credit limit among all customers.
+SELECT DISTINCT(creditLimit) FROM customers ORDER BY creditLimit DESC LIMIT 1 OFFSET 1;
+
+-- 13. List the countries with exactly five customers.
+SELECT country FROM customers GROUP BY country HAVING COUNT(customerNumber) = 5;
+
+-- 14. Retrieve customers whose name starts and ends with the same letter.
+SELECT * FROM customers WHERE customerName LIKE 'B%b';
+
+-- 15. If you were to create a backup of the customers table, which SQL statements would you include in your script?
+CREATE TABLE customers_backup AS SELECT * FROM customers;
+
+-- 16. Describe the sequence of operations to safely update the address of a customer in the database.
+/*BEGIN;
+UPDATE customers SET addressLine1 = 'New Address' WHERE customerNumber = [Specific Customer Number];
+COMMIT; */
+
+-- 17. Write an SQL script to create a new table customer_feedback with a foreign key reference to the customers table.
+CREATE TABLE customer_feedback (
+    feedback_id INT PRIMARY KEY,
+    customerNumber INT,
+    feedback_text TEXT,
+    FOREIGN KEY (customerNumber) REFERENCES customers(customerNumber)
+);
+
+-- 18. Write a query to join the customers table with another table in the database, assuming there's a foreign key relationship. What columns would you join on?
+SELECT * FROM customers JOIN orders ON customers.customerNumber = orders.customerNumber;
+
+-- 19. Explain the differences between LEFT JOIN, RIGHT JOIN, and INNER JOIN with examples from the classicmodels schema.
+/*INNER JOIN: This returns rows from both tables where there is a match based on the specified join condition. If there is no match, the row is not returned.
+
+Example: If we want to retrieve all customers who have placed orders, we would use an INNER JOIN between the customers and orders tables on the customer number.*/
+SELECT customers.customerName, orders.orderDate
+FROM customers
+INNER JOIN orders ON customers.customerNumber = orders.customerNumber;
+/* LEFT JOIN (or LEFT OUTER JOIN): This returns all rows from the left table and the matching rows from the right table. If there's no match, the result will contain NULL for columns from the right table.
+
+Example: If we want to retrieve all customers and their order dates (including customers who haven't placed any orders), we would use a LEFT JOIN:*/
+SELECT customers.customerName, orders.orderDate
+FROM customers
+LEFT JOIN orders ON customers.customerNumber = orders.customerNumber;
+/* RIGHT JOIN (or RIGHT OUTER JOIN): This is the opposite of a LEFT JOIN. It returns all rows from the right table and the matching rows from the left table. If there's no match, the result will contain NULL for columns from the left table.
+
+# Example: If we're more focused on orders and want to retrieve all orders and their associated customer names (including orders that might not have a related customer for some reason), we would use a RIGHT JOIN:*/
+SELECT customers.customerName, orders.orderDate
+FROM customers
+RIGHT JOIN orders ON customers.customerNumber = orders.customerNumber;
+
+-- 20. Retrieve the details of customers who have placed orders using an appropriate join operation.
+SELECT customers.*
+FROM customers
+INNER JOIN orders ON customers.customerNumber = orders.customerNumber;
+
+-- 21. Describe the flow of an SQL script that retrieves the names of all customers, filters out those from a specific country (USA), groups the result by city, and orders the output by the number of customers in each city.
+SELECT city, COUNT(customerNumber) FROM customers WHERE country != 'USA' GROUP BY city ORDER BY COUNT(customerNumber) DESC;
+
+-- 22. How would you use the WITH clause (Common Table Expressions) with the classic models schema?
+WITH CountryCustomers AS (
+    SELECT country, COUNT(customerNumber) as num_customers
+    FROM customers
+    GROUP BY country
+)
+SELECT * FROM CountryCustomers;
+
+-- 23. Write a query that uses the CASE statement to categorize customers based on their credit limit.
+SELECT customerName,
+       CASE
+           WHEN creditLimit IS NULL THEN 'No Limit Set'
+           WHEN creditLimit < 50000 THEN 'Low'
+           WHEN creditLimit BETWEEN 50000 AND 100000 THEN 'Medium'
+           ELSE 'High'
+       END AS CreditCategory
+FROM customers;
+
+-- 24. List all customers whose name contains the word "Inc" or "Ltd".
+SELECT customerName 
+FROM customers 
+WHERE customerName LIKE '%Inc%' OR customerName LIKE '%Ltd%';
+
+-- 25. Using a correlated subquery, find customers with a credit limit higher than the average credit limit of their respective countries.
+SELECT c1.customerName, c1.country, c1.creditLimit
+FROM customers c1
+WHERE c1.creditLimit > (
+    SELECT AVG(c2.creditLimit)
+    FROM customers c2
+    WHERE c1.country = c2.country
+);
+
+-- 26. Write a query that uses the EXISTS operator to determine if there are any customers from a specific city.
+SELECT EXISTS (
+    SELECT 1 
+    FROM customers 
+    WHERE city = 'San Francisco'
+) AS has_customers_from_sf;
+
+
+-- 27. How would you retrieve a random sample of 10 customers from the customers table?
+SELECT * 
+FROM customers 
+ORDER BY RAND() 
+LIMIT 10;
+
+-- 28. Demonstrate how to use the PIVOT operation to transform data from the customers table
+SELECT 
+    salesRepEmployeeNumber,
+    SUM(CASE WHEN country = 'USA' THEN 1 ELSE 0 END) AS USA,
+    SUM(CASE WHEN country = 'France' THEN 1 ELSE 0 END) AS France
+FROM customers
+GROUP BY salesRepEmployeeNumber;
+
+-- 29. Write a query to get a count of all the employees. Use table employees
+SELECT COUNT(*) FROM employees
+
+-- 30. WAQ to add a new column salary in the employee table with the relevant datatype
+ALTER TABLE employees
+ADD COLUMN salary DECIMAL(10, 2);
+
+-- 31. Write the queries to update the salary column with the salaries given below
+/*
+employeenumber | Salary
+1002           | 185945
+1056           | 140300
+1076           | 140300
+1088           | 130000
+1102           | 130000
+1143           | 125000
+1165           | 85000
+1166           | 85000
+1188           | 72000
+1216           | 84200
+1286           | 68000
+1323           | 95000
+1337           | 76500
+1370           | 76500
+1401           | 81000
+1501           | 69000
+1504           | 73000
+1611           | 86000
+1612           | 91000
+1619           | 92000
+1621           | 76500
+1625           | 72500
+1702           | 82000
+*/
+
+UPDATE employees SET `Salary` = '185945' WHERE (`employeeNumber` = '1002');
+UPDATE employees SET `Salary` = '140300' WHERE (`employeeNumber` = '1056');
+UPDATE employees SET `Salary` = '140300' WHERE (`employeeNumber` = '1076');
+UPDATE employees SET `Salary` = '130000' WHERE (`employeeNumber` = '1088');
+UPDATE employees SET `Salary` = '130000' WHERE (`employeeNumber` = '1102');
+UPDATE employees SET `Salary` = '125000' WHERE (`employeeNumber` = '1143');
+UPDATE employees SET `Salary` = '85000' WHERE (`employeeNumber` = '1165');
+UPDATE employees SET `Salary` = '85000' WHERE (`employeeNumber` = '1166');
+UPDATE employees SET `Salary` = '72000' WHERE (`employeeNumber` = '1188');
+UPDATE employees SET `Salary` = '84200' WHERE (`employeeNumber` = '1216');
+UPDATE employees SET `Salary` = '68000' WHERE (`employeeNumber` = '1286');
+UPDATE employees SET `Salary` = '95000' WHERE (`employeeNumber` = '1323');
+UPDATE employees SET `Salary` = '76500' WHERE (`employeeNumber` = '1337');
+UPDATE employees SET `Salary` = '76500' WHERE (`employeeNumber` = '1370');
+UPDATE employees SET `Salary` = '81000' WHERE (`employeeNumber` = '1401');
+UPDATE employees SET `Salary` = '69000' WHERE (`employeeNumber` = '1501');
+UPDATE employees SET `Salary` = '73000' WHERE (`employeeNumber` = '1504');
+UPDATE employees SET `Salary` = '86000' WHERE (`employeeNumber` = '1611');
+UPDATE employees SET `Salary` = '91000' WHERE (`employeeNumber` = '1612');
+UPDATE employees SET `Salary` = '92000' WHERE (`employeeNumber` = '1619');
+UPDATE employees SET `Salary` = '76500' WHERE (`employeeNumber` = '1621');
+UPDATE employees SET `Salary` = '72500' WHERE (`employeeNumber` = '1625');
+UPDATE employees SET `Salary` = '82000' WHERE (`employeeNumber` = '1702');
+
+-- 32. Write a query to get the highest salary of all the employees
+select max(salary) from employees;
+# or
+select * from employees order by salary desc limit 1;
+
+-- 33. Write a query to get the minimum salary of all the employees
+SELECT MIN(salary) FROM employees
+
+# or
+select * from employees order by salary limit 1;
+
+-- 34. Write a query to get maximum salary under each manager. Hint use reportsTo column
+SELECT MAX(salary) FROM employees GROUP BY reportsTo
+
+
+-- 35. Write a query to give the count of orders placed by each customer in descending order
+SELECT CustomerNumber, COUNT(*) FROM orders GROUP BY CustomerNumber;
+
+# or
+
+select c.customernumber,c.customername ,count(o.ordernumber) from customers c 
+join orders o on c.customernumber = o.customernumber group by customernumber;
+
+
+-- 36. Write a query to show current date in the format of DD-MM-YYYY
+select date(now()) as cur_date;
+# or
+SELECT DATE_FORMAT(CURDATE(), '%d-%m-%Y') as 'Date';
+# or
+SELECT date_format (now(), '%d-%m-%Y') as formatted_date;
+
+
+-- 37. Write a query to show the name of supervisor / manager of each employee. Hint use self join
+SELECT e1.employeeNumber as Manager_id, e1.firstName AS Manager, e2.firstName AS Team_member, e2.employeeNumber as Team_member_id 
+FROM employees e1 
+JOIN employees e2 
+ON e2.reportsTo = e1.employeeNumber;
+
+# or use left join (just for perspective)
+
+SELECT e1.employeeNumber as Manager_id, e1.firstName AS Manager, e2.firstName AS team_member, e2.employeeNumber as team_member_id 
+FROM employees e1 
+LEFT JOIN employees e2 
+ON e2.reportsTo = e1.employeeNumber
+
+
+-- 38. Write a query to show the unique productLines from products table
+SELECT DISTINCT(productLine) FROM products
+
+-- 39. Write a query to show first 10 orders placed. Explain this for "n" records as well.
+SELECT * FROM orders LIMIT 10
+
+-- 40. What is the difference between "where" and "having" clause?
+/*
+"The `WHERE` and `HAVING` clauses in SQL serve similar purposes, but they are used at different stages of query processing and operate on different types of data:
+
+1. WHERE Clause:
+   - The `WHERE` clause is used to filter rows from the source table(s) before any grouping or aggregation takes place.
+   - It operates on individual rows in the result set.
+   - It is typically used with `SELECT`, `UPDATE`, and `DELETE` statements to filter records.
+   - Conditions in the `WHERE` clause are applied to each row in the source table(s) to determine whether a row should be included in the result set.
+   - It is commonly used to filter data based on column values, such as filtering records where a specific column meets certain criteria.
+    Example:
+    SELECT product_category, AVG(product_price)
+    FROM products
+    WHERE product_price > 50
+    GROUP BY product_category;
+*/
+
+# using classicmodel database, filters orders based on the condition that the customer's country is 'USA'
+
+SELECT orderNumber, orderDate, customerNumber
+FROM orders
+WHERE customerNumber IN (
+    SELECT customerNumber
+    FROM customers
+    WHERE country = 'USA'
+);
+
+/*
+2. HAVING Clause:
+   - The `HAVING` clause is used to filter rows after the grouping has been applied, specifically for aggregated results (e.g., using functions like `SUM`, `COUNT`, `AVG`, etc.).
+   - It operates on grouped rows rather than individual rows.
+   - It is used with `GROUP BY` clauses to filter groups of rows based on the result of aggregate functions.
+   - Conditions in the `HAVING` clause are applied to the aggregated values of groups to determine whether a group should be included in the result set.
+   - It is commonly used to filter grouped data based on the result of aggregate functions, such as filtering groups with a certain total or average value.
+
+   Example:
+   SELECT department, AVG(salary) AS avg_salary
+   FROM employees
+   GROUP BY department
+   HAVING AVG(salary) > 50000;
+*/ 
+# using classicdatabase,  retrieve the total number of orders placed by customers located in each country, but only for countries where the total number of orders is greater than 5:
+
+SELECT country, COUNT(orderNumber) AS totalOrders
+FROM customers
+JOIN orders ON customers.customerNumber = orders.customerNumber
+GROUP BY country
+HAVING totalOrders > 5;
+
+/*
+In summary, the main difference between the `WHERE` and `HAVING` clauses is their application:
+
+- `WHERE` filters individual rows in the source table(s) before any grouping or aggregation.
+- `HAVING` filters grouped rows based on the result of aggregate functions after the grouping has been applied.
+
+You would typically use `WHERE` to filter data based on individual row conditions and `HAVING` to filter grouped data based on aggregate function results.
+*/ 
+
+-- 41. Write a query to list all the CustomerNumbers who have placed more than 4 orders
+SELECT *, COUNT(*) as order_count FROM orders GROUP BY CustomerNumber HAVING order_count > 4;
+
+
+-- 42. Write a query to show the employees with duplicate first name.
+SELECT *, COUNT(*) FROM employees GROUP BY firstname HAVING count(*) > 1
+
+-- 43. Write a query to show the list of customers who have never placed an order
+SELECT * FROM customers WHERE customerNumber NOT IN (SELECT DISTINCT(customerNumber) FROM orders)
+
+# or
+
+SELECT c.CustomerNumber, o.* FROM Customers as c LEFT JOIN orders as o USING (customerNumber)
+GROUP BY c.customerNumber HAVING count(o.customerNumber) = 0
+
+# or
+
+select c.customernumber, o.ordernumber
+from customers c left join orders o on c.customernumber = o.customernumber
+where o.ordernumber is null;
+
+
+-- 44. Display all the orders whos values are the greater than average of all the orders placed
+select sum(priceEach*quantityOrdered) as order_amount from orderdetails Group by orderNumber
+having order_amount > (SELECT avg(priceEach*quantityOrdered) from orderdetails);
+
+# or
+
+select orderNumber, sum(priceEach*quantityOrdered) as total from 
+orderdetails group by orderNumber having total>avg(priceEach*quantityOrdered);
+
+
+-- 45. Display nth highest salary in the entire table
+SELECT DISTINCT salary
+FROM employees
+ORDER BY salary DESC
+LIMIT 1, OFFSET 2
+
+# or
+
+SELECT DISTINCT salary
+FROM employees
+ORDER BY salary DESC
+LIMIT 2, 1;
+
+-- 46. Query the highest salary in each OfficeCode
+select officecode, max(salary) from employees group by officecode
+
+
+-- 47. Display nth highest salary in each OfficeCode
+SELECT officeCode, 
+       (
+           SELECT salary
+           FROM employees AS e2
+           WHERE e2.officeCode = e1.officeCode
+           ORDER BY salary DESC
+           LIMIT 1
+       ) AS nthHighestSalary
+FROM (
+    SELECT DISTINCT officeCode
+    FROM employees
+) AS e1;
+
+
+-- 48. How can you calculate the rank of each employee within their respective offices based on their salaries?
+SELECT
+    officeCode,
+    employeeNumber,
+    lastName,
+    firstName,
+    salary,
+    RANK() OVER(PARTITION BY officeCode ORDER BY salary DESC) AS salaryRank
+FROM
+    employees;
+
+
+-- 49. How can you find the top 3 highest-paid employees in each office?
+SELECT
+    officeCode,
+    employeeNumber,
+    lastName,
+    firstName,
+    salary
+FROM
+    (
+        SELECT
+            officeCode,
+            employeeNumber,
+            lastName,
+            firstName,
+            salary,
+            ROW_NUMBER() OVER (PARTITION BY officeCode ORDER BY salary DESC) AS salaryRank
+        FROM
+            employees
+    ) AS ranked_employees
+WHERE
+    salaryRank <= 3;
+
+# or
+
+ select * from (
+ select *,dense_rank() over(partition by officecode order by salary desc) as d from employees) as d2
+ where d in (1,2,3);
+ 
+# or
+
+select * from (select employeeNumber,salary,officeCode,
+dense_rank() over(partition by officeCode order by salary desc) as rank_of_emp from employees)t
+where t.rank_of_emp<4;
+
+-- 50. What is the difference between rank and dense rank?
+/*
+`RANK()`
+
+- `RANK()` assigns a unique rank to each row. If multiple rows have the same values, they receive the same rank, and the next rank is skipped.
+- The ranks may have gaps when there are duplicate values.
+
+`DENSE_RANK()`
+
+- `DENSE_RANK()` assigns a unique rank to each row, just like `RANK()`. However, it does not skip ranks for duplicate values.
+- The ranks do not have gaps when there are duplicate values.
+
+Example:
+
+SELECT officeCode,employeeNumber,lastName,firstName,salary,
+RANK() OVER(PARTITION BY officeCode ORDER BY salary DESC) AS salaryRank1,
+DENSE_RANK() OVER(PARTITION BY officeCode ORDER BY salary DESC) AS salaryRank2
+FROM employees;
+*/
